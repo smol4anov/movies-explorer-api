@@ -16,7 +16,7 @@ const creatMovie = (req, res, next) => {
 
 const getMovies = (req, res, next) => {
   Movie.find({})
-    .then((movies) => res.status(200).send(movies))
+    .then((movies) => res.send(movies))
     .catch(next);
 };
 
@@ -28,7 +28,7 @@ const deleteMovieById = (req, res, next) => {
       }
       return Movie.findByIdAndRemove(movie._id);
     })
-    .then(() => res.status(200).send({ status: 'deleted' }))
+    .then(() => res.send({ status: 'deleted' }))
     .catch((err) => {
       if (err instanceof mongoose.Error.CastError) {
         next(new ValidationError('Некорректный формат id'));

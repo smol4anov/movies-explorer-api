@@ -31,31 +31,25 @@ const createUser = (req, res, next) => {
 };
 
 const getUser = (req, res, next) => {
-  User.findById(req.user).orFail(new NotFoundError('Запрашиваемый пользователь не найден'))
-    .then((user) => res.status(200).send({ name: user.name, email: user.email }))
-    .catch((err) => {
-      if (err instanceof mongoose.Error.CastError) {
-        next(new ValidationError('Некорректный формат id'));
-        return;
-      }
-      next(err);
-    });
+  User.findById(req.user._id).orFail(new NotFoundError('Запрашиваемый пользователь не найден'))
+    .then((user) => res.send({ name: user.name, email: user.email }))
+    .catch(next);
 };
 
 const updateUser = (req, res, next) => {
   const { name, email } = req.body;
   User.findByIdAndUpdate(
-    req.user,
+    req.user._id,
     { name, email },
     {
       new: true,
       runValidators: true,
     },
   ).orFail(new NotFoundError('Запрашиваемый пользователь не найден'))
-    .then((user) => res.status(200).send(user))
+    .then((user) => res.send(user))
     .catch((err) => {
-      if (err instanceof mongoose.Error.CastError) {
-        next(new ValidationError('Некорректный формат id'));
+      if (err.code === 11000) {
+        next(new ConflictError('Данный email уже используется'));
         return;
       }
       if (err instanceof mongoose.Error.ValidationError) {
@@ -79,7 +73,7 @@ const login = (req, res, next) => {
         maxAge: 3600000 * 24 * 7,
         httpOnly: true,
       })
-        .status(201).end();
+        .end();
     })
     .catch(next);
 };
