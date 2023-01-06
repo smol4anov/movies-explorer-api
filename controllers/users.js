@@ -6,6 +6,22 @@ const { NotFoundError, ConflictError, ValidationError } = require('../errors');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
+const addTokenAndSend = (res, user, status = 200) => {
+  const newUser = user.toObject();
+  delete newUser.password;
+
+  const token = jwt.sign(
+    { _id: newUser._id },
+    NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
+    { expiresIn: '7d' },
+  );
+  res.cookie('jwt', token, {
+    maxAge: 3600000 * 24 * 7,
+    httpOnly: true,
+  })
+    .status(status).send(newUser);
+};
+
 const createUser = (req, res, next) => {
   bcrypt.hash(req.body.password, 10)
     .then((hash) => User.create({
@@ -13,9 +29,7 @@ const createUser = (req, res, next) => {
       password: hash,
     }))
     .then((user) => {
-      const newUser = user.toObject();
-      delete newUser.password;
-      res.status(201).send(newUser);
+      addTokenAndSend(res, user, 201);
     })
     .catch((err) => {
       if (err.code === 11000) {
@@ -32,7 +46,7 @@ const createUser = (req, res, next) => {
 
 const getUser = (req, res, next) => {
   User.findById(req.user._id).orFail(new NotFoundError('Запрашиваемый пользователь не найден'))
-    .then((user) => res.send({ name: user.name, email: user.email }))
+    .then((user) => res.send(user))
     .catch(next);
 };
 
@@ -64,16 +78,7 @@ const login = (req, res, next) => {
   const { email, password } = req.body;
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign(
-        { _id: user._id },
-        NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
-        { expiresIn: '7d' },
-      );
-      res.cookie('jwt', token, {
-        maxAge: 3600000 * 24 * 7,
-        httpOnly: true,
-      })
-        .end();
+      addTokenAndSend(res, user);
     })
     .catch(next);
 };
