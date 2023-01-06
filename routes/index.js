@@ -15,13 +15,13 @@ router.post('/signup', createAccountLimiter, createUserValidation, createUser);
 router.use(auth);
 
 router.get('/signout', (req, res) => {
-  res.clearCookie('jwt').end();
+  res.clearCookie('jwt').send({});
 });
 
 router.use('/users', usersRouter);
 router.use('/movies', moviesRouter);
 router.use('*', () => {
-  throw new NotFoundError('Запрашиваемый ресурс не найден');
+  throw new NotFoundError('Запрашиваемый ресурc не найден');
 });
 
 module.exports = router;
